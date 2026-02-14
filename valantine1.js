@@ -21,6 +21,7 @@
       const LOGIN_PASS = '2615';
 
       let currentScene = 'login';
+      let musicRetryBound = false;
 
       function normalizeUserName(value) {
         return value.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -63,13 +64,40 @@
       async function ensureMusic() {
         if (!bgMusic) return;
         bgMusic.loop = true;
+        bgMusic.muted = false;
+        bgMusic.volume = 1;
         if (!bgMusic.paused) return;
 
         try {
           await bgMusic.play();
         } catch (_) {
-          // Browser autoplay may block until first interaction.
+          if (loginError) {
+            loginError.textContent = 'Song autoplay block aagudhu. Screen-la once click pannunga.';
+          }
+
+          if (!musicRetryBound) {
+            musicRetryBound = true;
+            const retryPlay = async () => {
+              try {
+                await bgMusic.play();
+                if (loginError) loginError.textContent = '';
+                musicRetryBound = false;
+              } catch (_) {
+                // keep silent; user can try again
+              }
+            };
+            document.addEventListener('click', retryPlay, { once: true });
+            document.addEventListener('touchstart', retryPlay, { once: true });
+          }
         }
+      }
+
+      if (bgMusic) {
+        bgMusic.addEventListener('error', () => {
+          if (loginError) {
+            loginError.textContent = 'Song load aagala. anbil-avan.mp4 same folder-la irukkanum.';
+          }
+        });
       }
 
       if (loginForm && loginUser && loginPass && loginError) {
